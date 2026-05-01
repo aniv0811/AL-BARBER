@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AL Barber</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #ffffff; --bg-alt: #fafafa;
+    --ink: #111111; --ink-soft: #555555; --ink-muted: #999999;
+    --line: #ececec; --line-soft: #f3f3f3;
+    --accent: #111111; --danger: #c0392b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.55; font-size: 15px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  header { background: #1a1a1a; color: #fff; padding: 24px 20px; text-align: center; }
+  header h1 { font-size: 32px; letter-spacing: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 14px; }
+  header h1 svg { width: 28px; height: 28px; flex-shrink: 0; }
+  header p { font-size: 14px; opacity: 0.8; margin-top: 4px; letter-spacing: 2px; }
+  .container { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+  .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+  .week-nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .week-nav-buttons { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; width: 100%; order: 2; }
+  .week-nav .week-label { order: 1; width: 100%; }
+  button { background: var(--accent); color: #fff; border: 1px solid var(--accent); padding: 9px 18px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; letter-spacing: 0.2px; transition: all 0.15s ease; }
+  button:hover { background: #000; border-color: #000; }
+  button.gold { background: var(--accent); color: #fff; }
+  button.gold:hover { background: #000; }
+  button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  button.secondary:hover { background: var(--bg-alt); border-color: #ddd; }
+  button.danger { background: transparent; color: var(--danger); border: 1px solid #f0d0cc; }
+  button.danger:hover { background: #fdf3f2; border-color: var(--danger); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .week-label { font-weight: 500; padding: 0 14px; font-size: 14px; color: var(--ink-soft); letter-spacing: 0.3px; }
+  .week-grid { display: grid; grid-template-columns: repeat(var(--day-count, 7), minmax(0, 1fr)); gap: 12px; }
+  .empty-week { display: none; text-align: center; padding: 40px 16px; color: var(--ink-muted); font-size: 14px; }
+  .empty-week.show { display: block; }
+  .day { background: var(--bg); border-radius: 10px; padding: 14px 10px; border: 1px solid var(--line); min-height: 220px; display: flex; flex-direction: column; transition: border-color 0.15s ease, background 0.15s ease; }
+  .day.has-slots { background: #f2f4f6; border-color: #e6e9ec; }
+  .day.today { border-color: var(--ink); }
+  .day-header { text-align: center; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line-soft); }
+  .day-name { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink); }
+  .day-date { font-size: 12px; color: var(--ink-muted); margin-top: 4px; font-weight: 400; }
+  .slot { display: block; width: 100%; text-align: center; padding: 10px; margin-bottom: 6px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--line); background: var(--bg); color: var(--ink); transition: all 0.15s ease; letter-spacing: 0.2px; font-family: inherit; }
+  .slot:hover:not(.booked) { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .slot.booked { background: var(--bg-alt); color: var(--ink-muted); text-decoration: line-through; cursor: not-allowed; border-color: var(--line-soft); font-weight: 400; }
+  .empty-day { text-align: center; color: var(--ink-muted); font-size: 12px; padding: 16px 4px; font-weight: 400; flex: 1; display: flex; align-items: center; justify-content: center; }
+  .modal-bg { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(17,17,17,0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--bg); border-radius: 14px; max-width: 460px; width: 100%; padding: 32px; max-height: 90vh; overflow-y: auto; }
+  .modal h2 { margin-bottom: 6px; font-size: 20px; font-weight: 600; letter-spacing: -0.2px; }
+  .modal label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; margin-top: 18px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.8px; }
+  .modal input, .modal select, .modal textarea { width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; font-family: inherit; color: var(--ink); background: var(--bg); transition: border-color 0.15s ease; }
+  .modal textarea { resize: vertical; min-height: 70px; }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { outline: none; border-color: var(--ink); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 24px; justify-content: flex-end; }
+  .info { color: var(--ink-muted); padding: 0 0 20px 0; font-size: 13px; text-align: center; font-weight: 400; }
+  .admin-section { background: var(--bg); border-radius: 12px; padding: 24px; margin-bottom: 16px; border: 1px solid var(--line); }
+  .admin-section h2 { font-size: 11px; font-weight: 600; margin-bottom: 18px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 1.5px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end; }
+  @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+  .form-row label { display: block; font-size: 11px; font-weight: 500; margin-bottom: 6px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.8px; }
+  .form-row input, .form-row select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit; color: var(--ink); background: var(--bg); transition: border-color 0.15s ease; }
+  .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--ink); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--line-soft); }
+  tr:last-child td { border-bottom: none; }
+  th { background: transparent; font-weight: 500; font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 1px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  td { font-weight: 400; }
+  td strong { font-weight: 500; }
+  .empty-table { text-align: center; color: var(--ink-muted); padding: 28px; font-size: 13px; }
+  .badge { display: inline-block; font-size: 13px; color: var(--ink); font-weight: 500; }
+  .badge::before { content: "●"; color: #d23f3f; margin-right: 6px; font-size: 11px; vertical-align: middle; }
+  .badge.gray { color: var(--ink-soft); font-weight: 400; }
+  .badge.gray::before { color: #2eb872; }
+
+  @media (max-width: 600px) {
+    .week-grid { display: flex; grid-template-columns: none; flex-wrap: nowrap; overflow-x: auto; overflow-y: visible; gap: 10px; padding: 4px 12px 14px; margin: 0 -12px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scroll-padding-left: 12px; }
+    .week-grid::-webkit-scrollbar { height: 4px; }
+    .week-grid::-webkit-scrollbar-track { background: transparent; }
+    .week-grid::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+    .day { flex: 0 0 150px; scroll-snap-align: start; padding: 12px 8px; min-height: 200px; border-radius: 10px; }
+    .day-header { padding-bottom: 10px; margin-bottom: 10px; }
+    .day-name { font-size: 11px; letter-spacing: 1px; }
+    .day-date { font-size: 11px; margin-top: 3px; }
+    .slot { padding: 9px 4px; font-size: 13px; margin-bottom: 6px; border-radius: 6px; }
+    .empty-day { font-size: 11px; padding: 14px 4px; line-height: 1.3; }
+    .container { padding: 20px 12px 48px; }
+    .week-label { padding: 0 6px; font-size: 13px; }
+    button { padding: 8px 14px; font-size: 12px; }
+    header { padding: 20px 16px; }
+    header h1 { font-size: 24px; letter-spacing: 3px; gap: 10px; }
+    header h1 svg { width: 22px; height: 22px; }
+    header p { font-size: 12px; letter-spacing: 1.5px; }
+    .info { font-size: 12px; padding-bottom: 16px; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+        <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+        <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+        <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+      </svg>
+      AL BARBER
+    </h1>
+    <p>BOOK DIN TID</p>
+  </header>
+
+  <div class="container">
+    <div class="nav">
+      <div class="week-nav">
+        <div class="week-nav-buttons">
+          <button class="secondary" id="prevWeekBtn" onclick="changeWeek(-1)" style="display:none">◀ Tilbage</button>
+          <button class="secondary" onclick="changeWeek(1)">Næste ▶</button>
+          <button class="secondary" onclick="goToToday()">I dag</button>
+        </div>
+        <span class="week-label" id="weekLabel"></span>
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="secondary" id="previewBtn" style="display:none">Se som kunde</button>
+        <button class="gold" id="adminBtn" style="display:none">Tilbage til admin</button>
+      </div>
+    </div>
+
+    <div id="customerView">
+      <div class="info">Klik på en ledig tid for at booke. En klipning varer ca. 35 min.</div>
+      <div class="week-grid" id="weekGrid"></div>
+      <div class="empty-week" id="emptyWeek">Ingen kommende tider i denne uge.</div>
+    </div>
+
+    <div id="adminView" style="display:none;">
+      <div class="admin-section">
+        <h2>Tilføj ledige tider</h2>
+        <p style="font-size:13px;color:#666;margin-bottom:12px;">Vælg dato og tidsrum. Systemet opretter automatisk tider à ca. 35 min.</p>
+        <div class="form-row">
+          <div><label>Dato</label><input type="date" id="adminDate"></div>
+          <div><label>Fra</label><select id="adminFrom"></select></div>
+          <div><label>Til</label><select id="adminTo"></select></div>
+          <div><button class="gold" id="addSlotsBtn" onclick="addSlots()">Tilføj</button></div>
+        </div>
+      </div>
+      <div class="admin-section">
+        <h2>Ugens tider</h2>
+        <div class="week-nav" style="margin-bottom:14px;">
+          <div class="week-nav-buttons">
+            <button class="secondary" id="prevWeekBtnAdmin" onclick="changeWeek(-1)" style="display:none">◀ Tilbage</button>
+            <button class="secondary" onclick="changeWeek(1)">Næste ▶</button>
+          </div>
+          <span class="week-label" id="weekLabelAdmin"></span>
+        </div>
+        <div id="adminTable"></div>
+      </div>
+      <div class="admin-section">
+        <h2>Alle bookinger</h2>
+        <div id="bookingsTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="bookingModal">
+    <div class="modal">
+      <h2 id="bookingTitle">Book tid</h2>
+      <p id="bookingTime" style="color:#666;margin-bottom:8px;"></p>
+      <label>Dit navn <span style="color:#c0392b;">*</span></label>
+      <input type="text" id="customerName" autocomplete="name" required>
+      <label>Din e-mail <span style="color:#c0392b;">*</span></label>
+      <input type="email" id="customerEmail" autocomplete="email" required>
+      <label>Besked <span style="color:var(--ink-muted); text-transform:none; letter-spacing:0; font-weight:400;">(valgfri)</span></label>
+      <textarea id="customerMessage" rows="3"></textarea>
+      <div class="modal-actions">
+        <button class="secondary" onclick="closeModal('bookingModal')">Annullér</button>
+        <button class="gold" id="confirmBookingBtn" onclick="confirmBooking()">Bekræft booking</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="loginModal">
+    <div class="modal">
+      <h2>Admin login</h2>
+      <label>Adgangskode</label>
+      <input type="password" id="adminPassword" onkeydown="if(event.key==='Enter') doLogin()">
+      <div class="modal-actions">
+        <button class="secondary" onclick="closeModal('loginModal')">Annullér</button>
+        <button class="gold" onclick="doLogin()">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="calendarModal">
+    <div class="modal">
+      <h2>Tilføj til kalender</h2>
+      <p id="calendarModalSubtitle" style="color:#666;margin-top:4px;font-size:14px;"></p>
+      <p style="color:#777;font-size:13px;margin-top:14px;line-height:1.5;">Tryk "Tilføj" for at åbne aftalen i din kalender. På iPhone åbner Apple Kalender direkte. På Mac downloades en fil — dobbeltklik på den for at få Apple Kalender til at vise "Tilføj begivenhed?".</p>
+      <div class="modal-actions">
+        <button class="secondary" onclick="closeModal('calendarModal')">Annullér</button>
+        <button class="gold" id="calAppleBtn">Tilføj</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="confirmModal">
+    <div class="modal">
+      <h2>Er du sikker?</h2>
+      <p id="confirmText" style="color:#555;margin-top:4px;"></p>
+      <div class="modal-actions">
+        <button class="secondary" onclick="resolveConfirm(false)">Nej</button>
+        <button class="danger" onclick="resolveConfirm(true)">Ja</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const ADMIN_PASSWORD = "010602";
+  const SLOT_MINUTES = 35;
+  const SHOP_NAME = "AL Barber";
+  const SHOP_LOCATION = "AL Barber";
+
+  const EMAILJS_PUBLIC_KEY        = "VbdNF3YS1Z9kaMUIO";
+  const EMAILJS_SERVICE_ID        = "service_pmrh40j";
+  const EMAILJS_TEMPLATE_CUSTOMER = "template_1u7hjth";
+  const EMAILJS_TEMPLATE_BARBER   = "template_a0pw56a";
+  const BARBER_EMAIL              = "asger.laustsen@icloud.com";
+
+  const SUPABASE_URL      = "https://kzoalnbzdpnjrfifgqlp.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6b2FsbmJ6ZHBuanJmaWZncWxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NDIxMjIsImV4cCI6MjA5MzIxODEyMn0.3XRSP1h82awxpeodbLoyNce2f5dC6JLEBDhOFCz0XsI";
+
+  if (EMAILJS_PUBLIC_KEY && window.emailjs) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+  let supabaseClient = null;
+  if (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+
+  (function handleCalendarParam() {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const calData = urlParams.get("cal");
+      if (!calData) return;
+      const slot = JSON.parse(decodeURIComponent(escape(atob(calData))));
+      if (!slot.date || !slot.time) return;
+      slot.id = `cal-${slot.date}_${slot.time}`;
+      setTimeout(() => { try { downloadIcs(slot); } catch(e) { console.warn(e); } }, 200);
+      document.addEventListener("DOMContentLoaded", () => {
+        document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Inter,-apple-system,sans-serif;padding:20px;background:#fafafa;"><div style="max-width:420px;text-align:center;background:#fff;padding:40px 28px;border-radius:14px;border:1px solid #ececec;"><div style="font-size:40px;margin-bottom:16px;">📅</div><h2 style="font-size:20px;margin-bottom:8px;color:#111;font-weight:600;">Kalenderfil hentet</h2><p style="color:#666;font-size:14px;line-height:1.5;margin-bottom:20px;">Åbn den downloadede fil for at tilføje aftalen til din kalender.</p><a href="${window.location.pathname}" style="display:inline-block;padding:10px 22px;background:#111;color:#fff;text-decoration:none;border-radius:999px;font-size:13px;font-weight:500;">Tilbage til AL Barber</a></div></div>`;
+      });
+    } catch(e) { console.warn("Kunne ikke parse kalender-parameter:", e); }
+  })();
+
+  const DAY_NAMES = ["Mandag","Tirsdag","Onsdag","Torsdag","Fredag","Lørdag","Søndag"];
+  const DAY_NAMES_SHORT = ["Man","Tir","Ons","Tor","Fre","Lør","Søn"];
+  const MONTH_NAMES = ["januar","februar","marts","april","maj","juni","juli","august","september","oktober","november","december"];
+
+  let state = { slots: {} };
+  let currentWeekStart = getMondayOf(new Date());
+  let isAuthenticated = localStorage.getItem("al_barber_auth") === "1";
+  const urlAdmin = window.location.hash === "#admin" || window.location.search.includes("admin") || /\/admin\/?$/i.test(window.location.pathname);
+  let isAdmin = isAuthenticated && urlAdmin;
+  let pendingSlot = null;
+
+  async function loadSlots() {
+    if (!supabaseClient) return;
+    const todayStr = fmtDate(new Date());
+    const { data, error } = await supabaseClient.from('slots').select('*').gte('date', todayStr).order('date', { ascending: true }).order('time', { ascending: true });
+    if (error) { console.error('Hent fejlede:', error); alert('Kunne ikke hente tider fra databasen.'); return; }
+    state.slots = {};
+    (data || []).forEach(slot => { state.slots[slot.id] = slot; });
+  }
+  async function upsertSlot(slot) { const { error } = await supabaseClient.from('slots').upsert(slot); if (error) throw error; }
+  async function deleteSlotInDb(id) { const { error } = await supabaseClient.from('slots').delete().eq('id', id); if (error) throw error; }
+  async function insertSlots(slotsArr) { const { error } = await supabaseClient.from('slots').insert(slotsArr); if (error) throw error; }
+
+  function getMondayOf(date) {
+    const d = new Date(date); d.setHours(0,0,0,0);
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
+    d.setDate(d.getDate() + diff);
+    return d;
+  }
+  function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+  function fmtDateNice(d) { return `${d.getDate()}. ${MONTH_NAMES[d.getMonth()]}`; }
+  function isToday(d) { const t = new Date(); return d.getFullYear()===t.getFullYear() && d.getMonth()===t.getMonth() && d.getDate()===t.getDate(); }
+  function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function render() {
+    renderWeekLabel();
+    const adminBtn = document.getElementById("adminBtn");
+    const previewBtn = document.getElementById("previewBtn");
+    const inAdminContext = /\/admin\/?$/i.test(window.location.pathname) || window.location.hash === "#admin";
+    if (isAdmin) {
+      document.getElementById("customerView").style.display = "none";
+      document.getElementById("adminView").style.display = "block";
+      adminBtn.style.display = "none";
+      previewBtn.textContent = "Se som kunde"; previewBtn.style.display = ""; previewBtn.onclick = togglePreview;
+      renderAdmin();
+    } else if (isAuthenticated && inAdminContext) {
+      document.getElementById("customerView").style.display = "block";
+      document.getElementById("adminView").style.display = "none";
+      adminBtn.textContent = "Tilbage til admin"; adminBtn.style.display = ""; adminBtn.onclick = togglePreview;
+      previewBtn.style.display = "none";
+      renderWeekGrid();
+    } else {
+      document.getElementById("customerView").style.display = "block";
+      document.getElementById("adminView").style.display = "none";
+      adminBtn.style.display = "none"; previewBtn.style.display = "none";
+      renderWeekGrid();
+    }
+  }
+  function logout() { isAuthenticated = false; isAdmin = false; localStorage.removeItem("al_barber_auth"); render(); }
+  function togglePreview() { isAdmin = !isAdmin; render(); }
+
+  function renderWeekLabel() {
+    const end = new Date(currentWeekStart); end.setDate(end.getDate() + 6);
+    const label = `Uge ${getWeekNumber(currentWeekStart)} · ${fmtDateNice(currentWeekStart)} – ${fmtDateNice(end)}`;
+    document.getElementById("weekLabel").textContent = label;
+    const adminLabel = document.getElementById("weekLabelAdmin");
+    if (adminLabel) adminLabel.textContent = label;
+    const thisWeekStart = getMondayOf(new Date()); thisWeekStart.setHours(0,0,0,0);
+    const showPrev = currentWeekStart > thisWeekStart;
+    const prevBtn = document.getElementById("prevWeekBtn"); if (prevBtn) prevBtn.style.display = showPrev ? "" : "none";
+    const prevBtnAdmin = document.getElementById("prevWeekBtnAdmin"); if (prevBtnAdmin) prevBtnAdmin.style.display = showPrev ? "" : "none";
+  }
+
+  function getWeekNumber(d) {
+    const target = new Date(d.valueOf());
+    const dayNr = (d.getDay() + 6) % 7;
+    target.setDate(target.getDate() - dayNr + 3);
+    const firstThursday = target.valueOf();
+    target.setMonth(0, 1);
+    if (target.getDay() !== 4) target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+    return 1 + Math.ceil((firstThursday - target) / 604800000);
+  }
+
+  function renderWeekGrid() {
+    const grid = document.getElementById("weekGrid");
+    grid.innerHTML = "";
+    const today = new Date(); today.setHours(0,0,0,0);
+    let visibleCount = 0;
+    for (let i=0; i<7; i++) {
+      const d = new Date(currentWeekStart); d.setDate(d.getDate() + i);
+      if (d < today) continue;
+      const dateStr = fmtDate(d);
+      const slots = getSlotsForDate(dateStr);
+      const hasAvailable = slots.some(s => !s.booked);
+      const dayDiv = document.createElement("div");
+      dayDiv.className = "day" + (isToday(d) ? " today" : "") + (hasAvailable ? " has-slots" : "");
+      visibleCount++;
+      const header = document.createElement("div");
+      header.className = "day-header";
+      header.innerHTML = `<div class="day-name">${DAY_NAMES_SHORT[i]}</div><div class="day-date">${fmtDateNice(d)}</div>`;
+      dayDiv.appendChild(header);
+      if (slots.length === 0) {
+        const empty = document.createElement("div"); empty.className = "empty-day"; empty.textContent = "Ingen ledige tider";
+        dayDiv.appendChild(empty);
+      } else {
+        slots.forEach(slot => {
+          const btn = document.createElement("button");
+          btn.className = "slot" + (slot.booked ? " booked" : "");
+          btn.textContent = slot.time + (slot.booked ? " · Optaget" : "");
+          if (!slot.booked) btn.onclick = () => openBooking(dateStr, slot.time);
+          else btn.disabled = true;
+          dayDiv.appendChild(btn);
+        });
+      }
+      grid.appendChild(dayDiv);
+    }
+    grid.style.setProperty("--day-count", visibleCount || 7);
+    const emptyEl = document.getElementById("emptyWeek");
+    if (emptyEl) emptyEl.classList.toggle("show", visibleCount === 0);
+  }
+
+  function renderAdmin() {
+    const adminDate = document.getElementById("adminDate");
+    const todayStr = fmtDate(new Date());
+    adminDate.min = todayStr;
+    if (!adminDate.value || adminDate.value < todayStr) adminDate.value = todayStr;
+
+    const adminTable = document.getElementById("adminTable");
+    adminTable.innerHTML = "";
+    let hasSlots = false;
+    const tbl = document.createElement("table");
+    tbl.innerHTML = "<thead><tr><th>Dag</th><th>Tid</th><th>Status</th><th>Kunde</th><th></th></tr></thead><tbody></tbody>";
+    const tbody = tbl.querySelector("tbody");
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    for (let i=0; i<7; i++) {
+      const d = new Date(currentWeekStart); d.setDate(d.getDate() + i);
+      if (d < today) continue;
+      const dateStr = fmtDate(d);
+      const slots = getSlotsForDate(dateStr);
+      slots.forEach(slot => {
+        hasSlots = true;
+        const tr = document.createElement("tr");
+        const customerCell = slot.booked ? escapeHtml(slot.name) + (slot.message ? '<br><span style="font-size:12px; color:var(--ink-soft); font-style:italic;">«' + escapeHtml(slot.message) + '»</span>' : '') : '–';
+        const actionCell = slot.booked ? '' : `<button class="danger" style="padding:4px 10px;font-size:12px;" onclick="adminDeleteSlot('${slot.id}')">Slet</button>`;
+        tr.innerHTML = `<td><strong>${DAY_NAMES[i]}</strong><br><span style="font-size:12px;color:#888;">${fmtDateNice(d)}</span></td><td>${slot.time}</td><td>${slot.booked ? '<span class="badge">Booket</span>' : '<span class="badge gray">Ledig</span>'}</td><td>${customerCell}</td><td>${actionCell}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    if (hasSlots) adminTable.appendChild(tbl);
+    else adminTable.innerHTML = '<div class="empty-table">Ingen tider oprettet i denne uge.</div>';
+
+    const bookingsTable = document.getElementById("bookingsTable");
+    bookingsTable.innerHTML = "";
+    const allBookings = Object.values(state.slots).filter(s => s.booked && s.date >= todayStr).sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
+    if (allBookings.length === 0) {
+      bookingsTable.innerHTML = '<div class="empty-table">Ingen bookinger endnu.</div>';
+    } else {
+      const tbl2 = document.createElement("table");
+      tbl2.innerHTML = "<thead><tr><th>Dato</th><th>Tid</th><th>Navn</th><th></th></tr></thead><tbody></tbody>";
+      const tbody2 = tbl2.querySelector("tbody");
+      allBookings.forEach(b => {
+        const d = new Date(b.date);
+        const dayName = DAY_NAMES[(d.getDay()+6)%7];
+        const tr = document.createElement("tr");
+        const nameCell = escapeHtml(b.name) + (b.email ? '<br><span style="font-size:12px; color:var(--ink-muted);">' + escapeHtml(b.email) + '</span>' : '') + (b.message ? '<br><span style="font-size:12px; color:var(--ink-soft); font-style:italic;">«' + escapeHtml(b.message) + '»</span>' : '');
+        tr.innerHTML = `<td>${dayName}<br><span style="font-size:12px;color:#888;">${fmtDateNice(d)}</span></td><td><strong>${b.time}</strong></td><td>${nameCell}</td><td style="white-space:nowrap;"><button class="secondary" style="padding:4px 10px;font-size:12px;margin-right:4px;" onclick="adminAddToCalendar('${b.id}')">Tilføj til kalender</button><button class="danger" style="padding:4px 10px;font-size:12px;" onclick="adminCancelBooking('${b.id}')">Annullér</button></td>`;
+        tbody2.appendChild(tr);
+      });
+      bookingsTable.appendChild(tbl2);
+    }
+  }
+
+  function getSlotsForDate(dateStr) { return Object.values(state.slots).filter(s => s.date === dateStr).sort((a,b) => a.time.localeCompare(b.time)); }
+  function changeWeek(delta) { currentWeekStart = new Date(currentWeekStart); currentWeekStart.setDate(currentWeekStart.getDate() + delta*7); render(); }
+  function goToToday() { currentWeekStart = getMondayOf(new Date()); render(); }
+
+  function openBooking(date, time) {
+    pendingSlot = { date, time };
+    document.getElementById("bookingTitle").textContent = "Book tid";
+    const d = new Date(date);
+    const dayName = DAY_NAMES[(d.getDay()+6)%7];
+    document.getElementById("bookingTime").textContent = `${dayName} ${fmtDateNice(d)} kl. ${time}`;
+    document.getElementById("customerName").value = "";
+    document.getElementById("customerEmail").value = "";
+    document.getElementById("customerMessage").value = "";
+    openModal("bookingModal");
+    setTimeout(() => document.getElementById("customerName").focus(), 50);
+  }
+
+  function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+  async function confirmBooking() {
+    const name = document.getElementById("customerName").value.trim();
+    const email = document.getElementById("customerEmail").value.trim();
+    const message = document.getElementById("customerMessage").value.trim();
+    if (!name) { alert("Du skal udfylde dit navn for at booke en tid."); document.getElementById("customerName").focus(); return; }
+    if (!email || !isValidEmail(email)) { alert("Indtast en gyldig e-mail så vi kan sende dig en bekræftelse."); document.getElementById("customerEmail").focus(); return; }
+    if (!pendingSlot) return;
+    const id = pendingSlot.date + "_" + pendingSlot.time;
+    const btn = document.getElementById("confirmBookingBtn");
+    btn.disabled = true; btn.textContent = "Booker...";
+    await loadSlots();
+    const slot = state.slots[id];
+    if (!slot || slot.booked) {
+      alert("Beklager, denne tid er ikke længere ledig.");
+      closeModal("bookingModal"); render();
+      btn.disabled = false; btn.textContent = "Bekræft booking"; return;
+    }
+    const updated = { ...slot, booked: true, name, email, message: message || null };
+    try {
+      await upsertSlot(updated);
+      state.slots[id] = updated;
+      closeModal("bookingModal"); render();
+      sendBookingEmails(updated).catch(err => console.warn("E-mail fejl:", err));
+      alert(`Tak ${name}! Din tid er booket: ${fmtDateNice(new Date(pendingSlot.date))} kl. ${pendingSlot.time}.\n\nDu modtager en bekræftelse på e-mail med et link til at tilføje aftalen til din kalender.`);
+    } catch(err) { alert("Kunne ikke gemme bookingen. Prøv igen om lidt."); }
+    finally { btn.disabled = false; btn.textContent = "Bekræft booking"; pendingSlot = null; }
+  }
+
+  function pad2(n) { return String(n).padStart(2,"0"); }
+  function buildIcs(slot) {
+    const [y,m,d] = slot.date.split("-").map(Number);
+    const [h,min] = slot.time.split(":").map(Number);
+    const start = new Date(y, m-1, d, h, min);
+    const end = new Date(start.getTime() + SLOT_MINUTES*60000);
+    const fmtIcs = (dt) => `${dt.getFullYear()}${pad2(dt.getMonth()+1)}${pad2(dt.getDate())}T${pad2(dt.getHours())}${pad2(dt.getMinutes())}00`;
+    const now = new Date();
+    const dtstamp = `${now.getUTCFullYear()}${pad2(now.getUTCMonth()+1)}${pad2(now.getUTCDate())}T${pad2(now.getUTCHours())}${pad2(now.getUTCMinutes())}${pad2(now.getUTCSeconds())}Z`;
+    const uid = `${slot.id}@al-barber`;
+    const desc = `Klipning hos ${SHOP_NAME}` + (slot.message ? `\\nBesked: ${String(slot.message).replace(/\n/g,' ')}` : '');
+    return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//AL Barber//DA","CALSCALE:GREGORIAN","METHOD:PUBLISH","BEGIN:VEVENT",`UID:${uid}`,`DTSTAMP:${dtstamp}`,`DTSTART;TZID=Europe/Copenhagen:${fmtIcs(start)}`,`DTEND;TZID=Europe/Copenhagen:${fmtIcs(end)}`,`SUMMARY:Klipning hos ${SHOP_NAME}`,`DESCRIPTION:${desc}`,`LOCATION:${SHOP_LOCATION}`,"END:VEVENT","END:VCALENDAR"].join("\r\n");
+  }
+  function downloadIcs(slot) {
+    const ics = buildIcs(slot);
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `al-barber-${slot.date}-${slot.time.replace(":","")}.ics`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function buildGoogleCalendarLink(slot) {
+    const [y,m,d] = slot.date.split("-").map(Number);
+    const [h,min] = slot.time.split(":").map(Number);
+    const start = new Date(y, m-1, d, h, min);
+    const end = new Date(start.getTime() + SLOT_MINUTES*60000);
+    const fmtUtc = (dt) => { const utc = new Date(dt.getTime() - dt.getTimezoneOffset()*60000); return utc.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z'; };
+    const text = encodeURIComponent(`Klipning hos ${SHOP_NAME}`);
+    const dates = `${fmtUtc(start)}/${fmtUtc(end)}`;
+    const details = encodeURIComponent(`Klipning hos ${SHOP_NAME}` + (slot.message ? `\nBesked: ${slot.message}` : ''));
+    const location = encodeURIComponent(SHOP_LOCATION);
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dates}&details=${details}&location=${location}`;
+  }
+  function buildAppleCalendarLink(slot) {
+    const data = btoa(unescape(encodeURIComponent(JSON.stringify({ date: slot.date, time: slot.time, name: slot.name || "", message: slot.message || "" }))));
+    return `${window.location.origin + window.location.pathname}?cal=${data}`;
+  }
+
+  async function sendBookingEmails(slot) {
+    if (!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !window.emailjs) return;
+    const d = new Date(slot.date);
+    const dayName = DAY_NAMES[(d.getDay()+6)%7];
+    const params = { shop_name: SHOP_NAME, customer_name: slot.name, customer_email: slot.email, barber_email: BARBER_EMAIL, date: `${dayName} ${fmtDateNice(d)}`, time: slot.time, duration: `${SLOT_MINUTES} min`, message: slot.message || "(ingen besked)", google_calendar_link: buildGoogleCalendarLink(slot), apple_calendar_link: buildAppleCalendarLink(slot), reply_to: slot.email };
+    if (EMAILJS_TEMPLATE_CUSTOMER) { try { await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CUSTOMER, { ...params, to_email: slot.email, to_name: slot.name }); } catch(e) { console.warn("Kunde-mail fejlede:", e); } }
+    if (EMAILJS_TEMPLATE_BARBER) { try { await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_BARBER, { ...params, to_email: BARBER_EMAIL, to_name: SHOP_NAME }); } catch(e) { console.warn("Barber-mail fejlede:", e); } }
+  }
+
+  function openLogin() {
+    document.getElementById("adminPassword").value = "";
+    openModal("loginModal");
+    setTimeout(() => document.getElementById("adminPassword").focus(), 50);
+  }
+  function doLogin() {
+    const pw = document.getElementById("adminPassword").value;
+    if (pw === ADMIN_PASSWORD) {
+      isAuthenticated = true; isAdmin = true;
+      localStorage.setItem("al_barber_auth", "1");
+      closeModal("loginModal");
+      if (!/\/admin\/?$/i.test(window.location.pathname) && window.location.hash !== "#admin") {
+        history.replaceState(null, "", window.location.pathname + window.location.search + "#admin");
+      }
+      render();
+    } else { alert("Forkert adgangskode."); }
+  }
+
+  async function addSlots() {
+    const date = document.getElementById("adminDate").value;
+    const from = document.getElementById("adminFrom").value;
+    const to = document.getElementById("adminTo").value;
+    if (!date || !from || !to) { alert("Udfyld alle felter."); return; }
+    const todayStr = fmtDate(new Date());
+    if (date < todayStr) { alert("Du kan kun oprette tider fra i dag og fremad."); return; }
+    if (from >= to) { alert("Sluttiden skal være efter starttiden."); return; }
+    const times = generateSlots(from, to);
+    const newSlots = times.map(time => ({ id: date + "_" + time, date, time, booked: false, name: null, email: null, message: null }));
+    const btn = document.getElementById("addSlotsBtn");
+    btn.disabled = true; btn.textContent = "Tilføjer...";
+    await loadSlots();
+    const toInsert = newSlots.filter(s => !state.slots[s.id]);
+    if (toInsert.length === 0) { alert("Disse tider eksisterer allerede."); btn.disabled = false; btn.textContent = "Tilføj"; return; }
+    try {
+      await insertSlots(toInsert);
+      toInsert.forEach(s => { state.slots[s.id] = s; });
+      render();
+      alert(`${toInsert.length} tider tilføjet.`);
+    } catch(err) { alert("Kunne ikke gemme tiderne. Prøv igen."); }
+    finally { btn.disabled = false; btn.textContent = "Tilføj"; }
+  }
+
+  function generateSlots(from, to) {
+    const result = [];
+    let [h, m] = from.split(":").map(Number);
+    const [eh, em] = to.split(":").map(Number);
+    const endMins = eh*60 + em;
+    let curMins = h*60 + m;
+    while (curMins + SLOT_MINUTES <= endMins) { result.push(`${pad2(Math.floor(curMins/60))}:${pad2(curMins%60)}`); curMins += SLOT_MINUTES; }
+    return result;
+  }
+
+  async function adminDeleteSlot(id) {
+    const slot = state.slots[id]; if (!slot) return;
+    const ok = await showConfirm(`Slet tiden ${slot.time}?`);
+    if (!ok) return;
+    try { await deleteSlotInDb(id); delete state.slots[id]; render(); }
+    catch(err) { alert("Kunne ikke slette. Prøv igen."); }
+  }
+
+  function adminAddToCalendar(id) { const slot = state.slots[id]; if (!slot) return; openCalendarModal(slot); }
+  function openCalendarModal(slot) {
+    const d = new Date(slot.date); const dayName = DAY_NAMES[(d.getDay()+6)%7];
+    document.getElementById("calendarModalSubtitle").textContent = `${dayName} ${fmtDateNice(d)} kl. ${slot.time}` + (slot.name ? ` · ${slot.name}` : '');
+    document.getElementById("calAppleBtn").onclick = () => { downloadIcs(slot); closeModal("calendarModal"); };
+    openModal("calendarModal");
+  }
+
+  async function adminCancelBooking(id) {
+    const slot = state.slots[id]; if (!slot) return;
+    const ok = await showConfirm(`Annullér booking for ${slot.name} kl. ${slot.time}?`);
+    if (!ok) return;
+    const updated = { ...slot, booked: false, name: null, email: null, message: null };
+    try { await upsertSlot(updated); state.slots[id] = updated; render(); }
+    catch(err) { alert("Kunne ikke annullere. Prøv igen."); }
+  }
+
+  function openModal(id) { document.getElementById(id).classList.add("open"); }
+  function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+  let _confirmResolve = null;
+  function showConfirm(text) { document.getElementById("confirmText").textContent = text || ""; openModal("confirmModal"); return new Promise(resolve => { _confirmResolve = resolve; }); }
+  function resolveConfirm(value) { closeModal("confirmModal"); if (_confirmResolve) { _confirmResolve(value); _confirmResolve = null; } }
+
+  document.querySelectorAll(".modal-bg").forEach(bg => { bg.addEventListener("click", e => { if (e.target === bg) bg.classList.remove("open"); }); });
+
+  let logoClickCount = 0; let logoClickTimer = null;
+  document.querySelector("header h1").addEventListener("click", () => {
+    if (isAuthenticated) return;
+    logoClickCount++;
+    if (logoClickTimer) clearTimeout(logoClickTimer);
+    logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 3000);
+    if (logoClickCount >= 5) { logoClickCount = 0; openLogin(); }
+  });
+  document.querySelector("header h1").style.userSelect = "none";
+
+  if (urlAdmin && !isAuthenticated) setTimeout(openLogin, 100);
+
+  function fillTimeSelects() {
+    const fromSel = document.getElementById("adminFrom");
+    const toSel = document.getElementById("adminTo");
+    const opts = [];
+    for (let h=6; h<=23; h++) { for (const m of [0,15,30,45]) opts.push(`${pad2(h)}:${pad2(m)}`); }
+    fromSel.innerHTML = opts.map(t => `<option value="${t}">${t}</option>`).join("");
+    toSel.innerHTML = opts.map(t => `<option value="${t}">${t}</option>`).join("");
+    fromSel.value = "15:00"; toSel.value = "17:00";
+  }
+  fillTimeSelects();
+
+  async function init() {
+    render();
+    await loadSlots();
+    render();
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") loadSlots().then(render); });
+  }
+  init();
+</script>
+</body>
+</html>
