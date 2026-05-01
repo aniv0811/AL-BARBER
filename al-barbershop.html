@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AL Barber</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #fafafa;
+    --ink: #111111;
+    --ink-soft: #555555;
+    --ink-muted: #999999;
+    --line: #ececec;
+    --line-soft: #f3f3f3;
+    --accent: #111111;
+    --danger: #c0392b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  header {
+    background: #1a1a1a;
+    color: #fff;
+    padding: 24px 20px;
+    text-align: center;
+  }
+  header h1 {
+    font-size: 32px;
+    letter-spacing: 4px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+  }
+  header h1 svg {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+  header p {
+    font-size: 14px;
+    opacity: 0.8;
+    margin-top: 4px;
+    letter-spacing: 2px;
+  }
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 32px 20px 64px;
+  }
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .week-nav {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: 1px solid var(--accent);
+    padding: 9px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    letter-spacing: 0.2px;
+    transition: all 0.15s ease;
+  }
+  button:hover { background: #000; border-color: #000; }
+  button.gold {
+    background: var(--accent);
+    color: #fff;
+  }
+  button.gold:hover { background: #000; }
+  button.secondary {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  button.secondary:hover { background: var(--bg-alt); border-color: #ddd; }
+  button.danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid #f0d0cc;
+  }
+  button.danger:hover { background: #fdf3f2; border-color: var(--danger); }
+  .week-label {
+    font-weight: 500;
+    padding: 0 14px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    letter-spacing: 0.3px;
+  }
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--day-count, 7), minmax(0, 1fr));
+    gap: 12px;
+  }
+  @media (max-width: 600px) {
+    .week-grid { gap: 6px; }
+    .day { padding: 10px 5px; min-height: 110px; border-radius: 8px; }
+    .day-header { padding-bottom: 8px; margin-bottom: 8px; }
+    .day-name { font-size: 10px; letter-spacing: 1px; }
+    .day-date { font-size: 10px; margin-top: 2px; }
+    .slot { padding: 8px 2px; font-size: 12px; margin-bottom: 4px; border-radius: 6px; }
+    .empty-day { font-size: 10px; padding: 12px 2px; line-height: 1.3; }
+    .container { padding: 20px 12px 48px; }
+    .week-label { padding: 0 6px; font-size: 13px; }
+    button { padding: 8px 14px; font-size: 12px; }
+    header { padding: 20px 16px; }
+    header h1 { font-size: 24px; letter-spacing: 3px; gap: 10px; }
+    header h1 svg { width: 22px; height: 22px; }
+    header p { font-size: 12px; letter-spacing: 1.5px; }
+    .info { font-size: 12px; padding-bottom: 16px; }
+  }
+  .empty-week {
+    display: none;
+    text-align: center;
+    padding: 40px 16px;
+    color: var(--ink-muted);
+    font-size: 14px;
+  }
+  .empty-week.show { display: block; }
+  .day {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 14px 10px;
+    border: 1px solid var(--line);
+    min-height: 140px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .day.has-slots {
+    background: #f2f4f6;
+    border-color: #e6e9ec;
+  }
+  .day.today { border-color: var(--ink); }
+  .day-header {
+    text-align: center;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .day-name {
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--ink);
+  }
+  .day-date {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+  .slot {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink);
+    transition: all 0.15s ease;
+    letter-spacing: 0.2px;
+    font-family: inherit;
+  }
+  .slot:hover:not(.booked) {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+  .slot.booked {
+    background: var(--bg-alt);
+    color: var(--ink-muted);
+    text-decoration: line-through;
+    cursor: not-allowed;
+    border-color: var(--line-soft);
+    font-weight: 400;
+  }
+  .slot.admin-booked {
+    background: #fff;
+    color: var(--ink);
+    text-decoration: none;
+    cursor: pointer;
+    border-color: var(--ink);
+  }
+  .empty-day {
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 12px;
+    padding: 16px 4px;
+    font-weight: 400;
+  }
+  /* Modal */
+  .modal-bg {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(17,17,17,0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--bg);
+    border-radius: 14px;
+    max-width: 460px;
+    width: 100%;
+    padding: 32px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 {
+    margin-bottom: 6px;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+  .modal label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    margin-top: 18px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .modal input, .modal select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--bg);
+    transition: border-color 0.15s ease;
+  }
+  .modal input:focus, .modal select:focus {
+    outline: none;
+    border-color: var(--ink);
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+    justify-content: flex-end;
+  }
+  .info {
+    color: var(--ink-muted);
+    padding: 0 0 20px 0;
+    font-size: 13px;
+    text-align: center;
+    font-weight: 400;
+  }
+  /* Admin */
+  .admin-section {
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    border: 1px solid var(--line);
+  }
+  .admin-section h2 {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 18px;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+  }
+  .form-row label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .form-row input, .form-row select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--bg);
+    transition: border-color 0.15s ease;
+  }
+  .form-row input:focus, .form-row select:focus {
+    outline: none;
+    border-color: var(--ink);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 12px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  tr:last-child td { border-bottom: none; }
+  th {
+    background: transparent;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  td { font-weight: 400; }
+  td strong { font-weight: 500; }
+  .empty-table {
+    text-align: center;
+    color: var(--ink-muted);
+    padding: 28px;
+    font-size: 13px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .badge::before {
+    content: "●";
+    color: #d23f3f;
+    margin-right: 6px;
+    font-size: 11px;
+    vertical-align: middle;
+  }
+  .badge.gray {
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+  .badge.gray::before {
+    color: #2eb872;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="6" cy="6" r="3"/>
+        <circle cx="6" cy="18" r="3"/>
+        <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+        <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+        <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+      </svg>
+      AL BARBER
+    </h1>
+    <p>BOOK DIN TID</p>
+  </header>
+
+  <div class="container">
+    <div class="nav">
+      <div class="week-nav">
+        <span class="week-label" id="weekLabel"></span>
+        <button class="secondary" onclick="changeWeek(1)">Næste ▶</button>
+        <button class="secondary" onclick="goToToday()">I dag</button>
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="secondary" id="previewBtn" style="display:none">Se som kunde</button>
+        <button class="gold" id="adminBtn" style="display:none">Log ud</button>
+      </div>
+    </div>
+
+    <div id="customerView">
+      <div class="info">
+        Klik på en ledig tid for at booke. En klipning varer ca. 35 min.
+      </div>
+      <div class="week-grid" id="weekGrid"></div>
+      <div class="empty-week" id="emptyWeek">Ingen kommende tider i denne uge.</div>
+    </div>
+
+    <div id="adminView" style="display:none;">
+      <div class="admin-section">
+        <h2>Tilføj ledige tider</h2>
+        <p style="font-size:13px;color:#666;margin-bottom:12px;">
+          Vælg dato og tidsrum. Systemet opretter automatisk tider à ca. 35 min.
+        </p>
+        <div class="form-row">
+          <div>
+            <label>Dato</label>
+            <input type="date" id="adminDate">
+          </div>
+          <div>
+            <label>Fra</label>
+            <select id="adminFrom"></select>
+          </div>
+          <div>
+            <label>Til</label>
+            <select id="adminTo"></select>
+          </div>
+          <div>
+            <button class="gold" onclick="addSlots()">Tilføj</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <h2>Ugens tider</h2>
+        <div class="week-nav" style="margin-bottom:14px;">
+          <span class="week-label" id="weekLabelAdmin"></span>
+          <button class="secondary" onclick="changeWeek(1)">Næste ▶</button>
+        </div>
+        <div id="adminTable"></div>
+      </div>
+
+      <div class="admin-section">
+        <h2>Alle bookinger</h2>
+        <div id="bookingsTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking modal -->
+  <div class="modal-bg" id="bookingModal">
+    <div class="modal">
+      <h2 id="bookingTitle">Book tid</h2>
+      <p id="bookingTime" style="color:#666;margin-bottom:8px;"></p>
+      <label>Dit navn <span style="color:#c0392b;">*</span></label>
+      <input type="text" id="customerName" autocomplete="name" required>
+      <label>Besked <span style="color:var(--ink-muted); text-transform:none; letter-spacing:0; font-weight:400;">(valgfri)</span></label>
+      <textarea id="customerMessage" rows="3" style="width:100%; padding:11px 14px; border:1px solid var(--line); border-radius:8px; font-size:15px; font-family:inherit; color:var(--ink); background:var(--bg); resize:vertical;"></textarea>
+      <div class="modal-actions">
+        <button class="secondary" onclick="closeModal('bookingModal')">Annullér</button>
+        <button class="gold" onclick="confirmBooking()">Bekræft booking</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin login modal -->
+  <div class="modal-bg" id="loginModal">
+    <div class="modal">
+      <h2>Admin login</h2>
+      <label>Adgangskode</label>
+      <input type="password" id="adminPassword" onkeydown="if(event.key==='Enter') doLogin()">
+      <div class="modal-actions">
+        <button class="secondary" onclick="closeModal('loginModal')">Annullér</button>
+        <button class="gold" onclick="doLogin()">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bekræftelses-modal -->
+  <div class="modal-bg" id="confirmModal">
+    <div class="modal">
+      <h2>Er du sikker?</h2>
+      <p id="confirmText" style="color:#555;margin-top:4px;"></p>
+      <div class="modal-actions">
+        <button class="secondary" onclick="resolveConfirm(false)">Nej</button>
+        <button class="danger" onclick="resolveConfirm(true)">Ja</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking detail modal (admin) -->
+  <div class="modal-bg" id="detailModal">
+    <div class="modal">
+      <h2>Booking detaljer</h2>
+      <div id="detailContent"></div>
+      <div class="modal-actions">
+        <button class="secondary" onclick="closeModal('detailModal')">Luk</button>
+        <button class="danger" onclick="cancelSelectedBooking()">Annullér booking</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ============ KONFIGURATION ============
+  const ADMIN_PASSWORD = "010602"; // Skift denne adgangskode
+  const SLOT_MINUTES = 35; // Klipningens varighed
+
+  // ============ DATA ============
+  const STORAGE_KEY = "al_barbershop_data";
+  const DATA_VERSION = 2; // Bump denne for at rydde gamle tider
+  const DAY_NAMES = ["Mandag","Tirsdag","Onsdag","Torsdag","Fredag","Lørdag","Søndag"];
+  const DAY_NAMES_SHORT = ["Man","Tir","Ons","Tor","Fre","Lør","Søn"];
+  const MONTH_NAMES = ["januar","februar","marts","april","maj","juni","juli","august","september","oktober","november","december"];
+
+  let state = loadState();
+  let currentWeekStart = getMondayOf(new Date());
+  let isAuthenticated = localStorage.getItem("al_barber_auth") === "1";
+  // Hvis URL har #admin og brugeren er logget ind, start i admin-visning
+  const urlAdmin = window.location.hash === "#admin" || window.location.search.includes("admin");
+  let isAdmin = isAuthenticated && urlAdmin;
+  let pendingSlot = null;
+  let selectedBookingId = null;
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.version === DATA_VERSION) return parsed;
+      }
+    } catch(e) {}
+    // Ny version eller intet gemt: start på en frisk
+    return { version: DATA_VERSION, slots: {} };
+    // slots: { "YYYY-MM-DD_HH:MM": { date, time, booked: bool, name, id } }
+  }
+  function saveState() {
+    state.version = DATA_VERSION;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  // ============ DATO HJÆLPERE ============
+  function getMondayOf(date) {
+    const d = new Date(date);
+    d.setHours(0,0,0,0);
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
+    d.setDate(d.getDate() + diff);
+    return d;
+  }
+  function fmtDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const day = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+  function fmtDateNice(d) {
+    return `${d.getDate()}. ${MONTH_NAMES[d.getMonth()]}`;
+  }
+  function isToday(d) {
+    const t = new Date();
+    return d.getFullYear()===t.getFullYear() && d.getMonth()===t.getMonth() && d.getDate()===t.getDate();
+  }
+
+  // ============ RENDERING ============
+  function render() {
+    renderWeekLabel();
+    const adminBtn = document.getElementById("adminBtn");
+    const previewBtn = document.getElementById("previewBtn");
+    if (isAdmin) {
+      // Admin-visning
+      document.getElementById("customerView").style.display = "none";
+      document.getElementById("adminView").style.display = "block";
+      adminBtn.textContent = "Log ud";
+      adminBtn.style.display = "";
+      adminBtn.onclick = logout;
+      previewBtn.textContent = "Se som kunde";
+      previewBtn.style.display = "";
+      previewBtn.onclick = togglePreview;
+      renderAdmin();
+    } else if (isAuthenticated) {
+      // Logget ind men ser kundevisning
+      document.getElementById("customerView").style.display = "block";
+      document.getElementById("adminView").style.display = "none";
+      adminBtn.textContent = "Tilbage til admin";
+      adminBtn.style.display = "";
+      adminBtn.onclick = togglePreview;
+      previewBtn.style.display = "none";
+      renderWeekGrid();
+    } else {
+      // Almindelig kunde
+      document.getElementById("customerView").style.display = "block";
+      document.getElementById("adminView").style.display = "none";
+      adminBtn.style.display = "none";
+      previewBtn.style.display = "none";
+      renderWeekGrid();
+    }
+  }
+
+  function logout() {
+    isAuthenticated = false;
+    isAdmin = false;
+    localStorage.removeItem("al_barber_auth");
+    render();
+  }
+
+  function togglePreview() {
+    isAdmin = !isAdmin;
+    render();
+  }
+
+  function renderWeekLabel() {
+    const end = new Date(currentWeekStart);
+    end.setDate(end.getDate() + 6);
+    const label = `Uge ${getWeekNumber(currentWeekStart)} · ${fmtDateNice(currentWeekStart)} – ${fmtDateNice(end)}`;
+    document.getElementById("weekLabel").textContent = label;
+    const adminLabel = document.getElementById("weekLabelAdmin");
+    if (adminLabel) adminLabel.textContent = label;
+  }
+
+  function getWeekNumber(d) {
+    const target = new Date(d.valueOf());
+    const dayNr = (d.getDay() + 6) % 7;
+    target.setDate(target.getDate() - dayNr + 3);
+    const firstThursday = target.valueOf();
+    target.setMonth(0, 1);
+    if (target.getDay() !== 4) {
+      target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+    }
+    return 1 + Math.ceil((firstThursday - target) / 604800000);
+  }
+
+  function renderWeekGrid() {
+    const grid = document.getElementById("weekGrid");
+    grid.innerHTML = "";
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    let visibleCount = 0;
+    for (let i=0; i<7; i++) {
+      const d = new Date(currentWeekStart);
+      d.setDate(d.getDate() + i);
+      // Spring overstået dag over
+      if (d < today) continue;
+      const dateStr = fmtDate(d);
+      const slots = getSlotsForDate(dateStr);
+      const hasAvailable = slots.some(s => !s.booked);
+      const dayDiv = document.createElement("div");
+      dayDiv.className = "day" + (isToday(d) ? " today" : "") + (hasAvailable ? " has-slots" : "");
+      visibleCount++;
+
+      const header = document.createElement("div");
+      header.className = "day-header";
+      header.innerHTML = `<div class="day-name">${DAY_NAMES_SHORT[i]}</div><div class="day-date">${fmtDateNice(d)}</div>`;
+      dayDiv.appendChild(header);
+
+      if (slots.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty-day";
+        empty.textContent = "Ingen ledige tider";
+        dayDiv.appendChild(empty);
+      } else {
+        slots.forEach(slot => {
+          const btn = document.createElement("button");
+          btn.className = "slot" + (slot.booked ? " booked" : "");
+          btn.textContent = slot.time + (slot.booked ? " · Optaget" : "");
+          if (!slot.booked) {
+            btn.onclick = () => openBooking(dateStr, slot.time);
+          } else {
+            btn.disabled = true;
+          }
+          dayDiv.appendChild(btn);
+        });
+      }
+      grid.appendChild(dayDiv);
+    }
+    grid.style.setProperty("--day-count", visibleCount || 7);
+    // Vis besked hvis der ikke er nogen dage at vise
+    const emptyEl = document.getElementById("emptyWeek");
+    if (emptyEl) emptyEl.classList.toggle("show", visibleCount === 0);
+  }
+
+  function renderAdmin() {
+    // Sæt min-dato til i dag og fyld med dagens dato hvis tom
+    const adminDate = document.getElementById("adminDate");
+    const todayStr = fmtDate(new Date());
+    adminDate.min = todayStr;
+    if (!adminDate.value || adminDate.value < todayStr) {
+      adminDate.value = todayStr;
+    }
+
+    // Ugens tider
+    const adminTable = document.getElementById("adminTable");
+    adminTable.innerHTML = "";
+    let hasSlots = false;
+    const tbl = document.createElement("table");
+    tbl.innerHTML = "<thead><tr><th>Dag</th><th>Tid</th><th>Status</th><th>Kunde</th><th></th></tr></thead><tbody></tbody>";
+    const tbody = tbl.querySelector("tbody");
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    for (let i=0; i<7; i++) {
+      const d = new Date(currentWeekStart);
+      d.setDate(d.getDate() + i);
+      // Spring overstået dag over
+      if (d < today) continue;
+      const dateStr = fmtDate(d);
+      const slots = getSlotsForDate(dateStr);
+      slots.forEach(slot => {
+        hasSlots = true;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${DAY_NAMES[i]}</strong><br><span style="font-size:12px;color:#888;">${fmtDateNice(d)}</span></td>
+          <td>${slot.time}</td>
+          <td>${slot.booked ? '<span class="badge">Booket</span>' : '<span class="badge gray">Ledig</span>'}</td>
+          <td>${slot.booked ? slot.name + (slot.message ? '<br><span style="font-size:12px; color:var(--ink-soft); font-style:italic;">«' + slot.message.replace(/</g,'&lt;').replace(/"/g,'&quot;') + '»</span>' : '') : '–'}</td>
+          <td><button class="danger" style="padding:4px 10px;font-size:12px;" onclick="adminDeleteSlot('${slot.id}')">Slet</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    if (hasSlots) {
+      adminTable.appendChild(tbl);
+    } else {
+      adminTable.innerHTML = '<div class="empty-table">Ingen tider oprettet i denne uge.</div>';
+    }
+
+    // Alle bookinger (kun fremtidige)
+    const bookingsTable = document.getElementById("bookingsTable");
+    bookingsTable.innerHTML = "";
+    const allBookings = Object.values(state.slots)
+      .filter(s => s.booked && s.date >= todayStr)
+      .sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
+
+    if (allBookings.length === 0) {
+      bookingsTable.innerHTML = '<div class="empty-table">Ingen bookinger endnu.</div>';
+    } else {
+      const tbl2 = document.createElement("table");
+      tbl2.innerHTML = "<thead><tr><th>Dato</th><th>Tid</th><th>Navn</th><th></th></tr></thead><tbody></tbody>";
+      const tbody2 = tbl2.querySelector("tbody");
+      allBookings.forEach(b => {
+        const d = new Date(b.date);
+        const dayName = DAY_NAMES[(d.getDay()+6)%7];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${dayName}<br><span style="font-size:12px;color:#888;">${fmtDateNice(d)}</span></td>
+          <td><strong>${b.time}</strong></td>
+          <td>${b.name}${b.message ? '<br><span style="font-size:12px; color:var(--ink-soft); font-style:italic;">«' + b.message.replace(/</g,'&lt;').replace(/"/g,'&quot;') + '»</span>' : ''}</td>
+          <td><button class="danger" style="padding:4px 10px;font-size:12px;" onclick="adminCancelBooking('${b.id}')">Annullér</button></td>
+        `;
+        tbody2.appendChild(tr);
+      });
+      bookingsTable.appendChild(tbl2);
+    }
+  }
+
+  function getSlotsForDate(dateStr) {
+    return Object.values(state.slots)
+      .filter(s => s.date === dateStr)
+      .sort((a,b) => a.time.localeCompare(b.time));
+  }
+
+  // ============ NAVIGATION ============
+  function changeWeek(delta) {
+    currentWeekStart = new Date(currentWeekStart);
+    currentWeekStart.setDate(currentWeekStart.getDate() + delta*7);
+    render();
+  }
+  function goToToday() {
+    currentWeekStart = getMondayOf(new Date());
+    render();
+  }
+
+  // ============ BOOKING ============
+  function openBooking(date, time) {
+    pendingSlot = { date, time };
+    document.getElementById("bookingTitle").textContent = "Book tid";
+    const d = new Date(date);
+    const dayName = DAY_NAMES[(d.getDay()+6)%7];
+    document.getElementById("bookingTime").textContent = `${dayName} ${fmtDateNice(d)} kl. ${time}`;
+    document.getElementById("customerName").value = "";
+    document.getElementById("customerMessage").value = "";
+    openModal("bookingModal");
+    setTimeout(() => document.getElementById("customerName").focus(), 50);
+  }
+
+  function confirmBooking() {
+    const name = document.getElementById("customerName").value.trim();
+    const message = document.getElementById("customerMessage").value.trim();
+    if (!name) {
+      alert("Du skal udfylde dit navn for at booke en tid.");
+      document.getElementById("customerName").focus();
+      return;
+    }
+    if (!pendingSlot) return;
+    const id = pendingSlot.date + "_" + pendingSlot.time;
+    const slot = state.slots[id];
+    if (!slot || slot.booked) {
+      alert("Beklager, denne tid er ikke længere ledig.");
+      closeModal("bookingModal");
+      render();
+      return;
+    }
+    slot.booked = true;
+    slot.name = name;
+    if (message) slot.message = message;
+    saveState();
+    closeModal("bookingModal");
+    render();
+    alert(`Tak ${name}! Din tid er booket: ${pendingSlot.date} kl. ${pendingSlot.time}.`);
+    pendingSlot = null;
+  }
+
+  // ============ ADMIN ============
+  function openLogin() {
+    document.getElementById("adminPassword").value = "";
+    openModal("loginModal");
+    setTimeout(() => document.getElementById("adminPassword").focus(), 50);
+  }
+
+  function doLogin() {
+    const pw = document.getElementById("adminPassword").value;
+    if (pw === ADMIN_PASSWORD) {
+      isAuthenticated = true;
+      isAdmin = true;
+      localStorage.setItem("al_barber_auth", "1");
+      closeModal("loginModal");
+      // Tilføj #admin til URL hvis det mangler, så genvejen virker
+      if (window.location.hash !== "#admin") {
+        history.replaceState(null, "", window.location.pathname + window.location.search + "#admin");
+      }
+      render();
+    } else {
+      alert("Forkert adgangskode.");
+    }
+  }
+
+  function addSlots() {
+    const date = document.getElementById("adminDate").value;
+    const from = document.getElementById("adminFrom").value;
+    const to = document.getElementById("adminTo").value;
+    if (!date || !from || !to) {
+      alert("Udfyld alle felter.");
+      return;
+    }
+    const todayStr = fmtDate(new Date());
+    if (date < todayStr) {
+      alert("Du kan kun oprette tider fra i dag og fremad.");
+      return;
+    }
+    if (from >= to) {
+      alert("Sluttiden skal være efter starttiden.");
+      return;
+    }
+    const slots = generateSlots(from, to);
+    let added = 0;
+    slots.forEach(time => {
+      const id = date + "_" + time;
+      if (!state.slots[id]) {
+        state.slots[id] = { id, date, time, booked: false };
+        added++;
+      }
+    });
+    saveState();
+    render();
+    if (added === 0) {
+      alert("Disse tider eksisterer allerede.");
+    } else {
+      alert(`${added} tider tilføjet.`);
+    }
+  }
+
+  function generateSlots(from, to) {
+    const result = [];
+    let [h, m] = from.split(":").map(Number);
+    const [eh, em] = to.split(":").map(Number);
+    const endMins = eh*60 + em;
+    let curMins = h*60 + m;
+    while (curMins + SLOT_MINUTES <= endMins) {
+      const hh = String(Math.floor(curMins/60)).padStart(2,"0");
+      const mm = String(curMins%60).padStart(2,"0");
+      result.push(`${hh}:${mm}`);
+      curMins += SLOT_MINUTES;
+    }
+    return result;
+  }
+
+  async function adminDeleteSlot(id) {
+    const slot = state.slots[id];
+    if (!slot) return;
+    const msg = slot.booked
+      ? `Denne tid er booket af ${slot.name}. Vil du virkelig slette?`
+      : `Slet tiden ${slot.time}?`;
+    const ok = await showConfirm(msg);
+    if (!ok) return;
+    delete state.slots[id];
+    saveState();
+    render();
+  }
+
+  async function adminClearWeek() {
+    const ids = [];
+    for (let i=0; i<7; i++) {
+      const d = new Date(currentWeekStart);
+      d.setDate(d.getDate() + i);
+      const dateStr = fmtDate(d);
+      Object.values(state.slots).forEach(s => { if (s.date === dateStr) ids.push(s.id); });
+    }
+    if (ids.length === 0) {
+      alert("Der er ingen tider at slette i denne uge.");
+      return;
+    }
+    const ok = await showConfirm(`Slet alle ${ids.length} tider i denne uge? (Også bookede)`);
+    if (!ok) return;
+    ids.forEach(id => delete state.slots[id]);
+    saveState();
+    render();
+  }
+
+  async function adminCancelBooking(id) {
+    const slot = state.slots[id];
+    if (!slot) return;
+    const ok = await showConfirm(`Annullér booking for ${slot.name} kl. ${slot.time}?`);
+    if (!ok) return;
+    slot.booked = false;
+    delete slot.name;
+    delete slot.message;
+    saveState();
+    render();
+  }
+
+  // ============ MODAL ============
+  function openModal(id) {
+    document.getElementById(id).classList.add("open");
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove("open");
+  }
+
+  // Bekræftelses-popup
+  let _confirmResolve = null;
+  function showConfirm(text) {
+    document.getElementById("confirmText").textContent = text || "";
+    openModal("confirmModal");
+    return new Promise(resolve => { _confirmResolve = resolve; });
+  }
+  function resolveConfirm(value) {
+    closeModal("confirmModal");
+    if (_confirmResolve) { _confirmResolve(value); _confirmResolve = null; }
+  }
+
+  // Luk modal ved klik udenfor
+  document.querySelectorAll(".modal-bg").forEach(bg => {
+    bg.addEventListener("click", e => {
+      if (e.target === bg) bg.classList.remove("open");
+    });
+  });
+
+  // Skjult admin-adgang: 5 klik på "AL BARBER" inden for 3 sek (backup ud over #admin URL)
+  let logoClickCount = 0;
+  let logoClickTimer = null;
+  document.querySelector("header h1").addEventListener("click", () => {
+    if (isAuthenticated) return;
+    logoClickCount++;
+    if (logoClickTimer) clearTimeout(logoClickTimer);
+    logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 3000);
+    if (logoClickCount >= 5) {
+      logoClickCount = 0;
+      openLogin();
+    }
+  });
+  document.querySelector("header h1").style.userSelect = "none";
+
+  // Hvis URL har #admin og brugeren ikke er logget ind, vis login automatisk
+  if (urlAdmin && !isAuthenticated) {
+    setTimeout(openLogin, 100);
+  }
+
+  // Fyld tids-dropdowns (06:00 til 23:45, kun 00/15/30/45)
+  function fillTimeSelects() {
+    const fromSel = document.getElementById("adminFrom");
+    const toSel = document.getElementById("adminTo");
+    const opts = [];
+    for (let h=6; h<=23; h++) {
+      for (const m of [0,15,30,45]) {
+        const v = String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
+        opts.push(v);
+      }
+    }
+    fromSel.innerHTML = opts.map(t => `<option value="${t}">${t}</option>`).join("");
+    toSel.innerHTML = opts.map(t => `<option value="${t}">${t}</option>`).join("");
+    fromSel.value = "15:00";
+    toSel.value = "17:00";
+  }
+  fillTimeSelects();
+
+  // Init
+  render();
+</script>
+</body>
+</html>
